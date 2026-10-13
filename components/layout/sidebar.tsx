@@ -1,8 +1,7 @@
-"use client";
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useUser, UserButton } from "@clerk/nextjs";
+import { createSignal, For, Show } from "solid-js";
+import { useLocation } from "@tanstack/solid-router";
+import { Dynamic } from "@solidjs/web";
+import { useAuth, UserButton } from "@/lib/auth-client";
 import { useOrganizationContext } from "@/lib/contexts/organization-context";
 import {
   Clock,
@@ -15,14 +14,12 @@ import {
   Sparkles,
   KeyRound,
   FileEdit,
-} from "lucide-react";
+} from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OrganizationSelector } from "./organization-selector";
 import { getClientUserDisplayName, getClientUserEmail } from "@/lib/user-utils";
 import { ThemeSwitcher } from "@/components/ui/theme-switcher";
-import type { OrganizationWithRole } from "@/lib/organizations";
-
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Time Clock", href: "/dtr", icon: Clock },
@@ -33,171 +30,126 @@ const navigation = [
   { name: "Themes", href: "/themes", icon: Sparkles, adminOnly: true },
   { name: "Admin Panel", href: "/admin", icon: Users, adminOnly: true },
 ];
-
 export function Sidebar() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const pathname = usePathname();
-  const { user } = useUser();
-  const { currentOrganization: organization, loading: orgLoading } = useOrganizationContext();
-  const isAdmin = organization?.role === "admin";
-
-  // While loading org data, show all nav items to prevent flash of missing items
-  const filteredNavigation = navigation.filter(
-    (item) => !item.adminOnly || isAdmin || orgLoading,
-  );
-
-  return (
-    <>
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Mobile sidebar */}
-      <div
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-xl transform transition-transform duration-300 ease-in-out lg:hidden",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <SidebarContent
-          navigation={filteredNavigation}
-          pathname={pathname}
-          user={user}
-          organization={organization}
-          onClose={() => setSidebarOpen(false)}
-        />
-      </div>
-
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex min-h-0 flex-1 flex-col bg-sidebar shadow-xl border-r border-sidebar-border">
-          <SidebarContent
-            navigation={filteredNavigation}
-            pathname={pathname}
-            user={user}
-            organization={organization}
-          />
-        </div>
-      </div>
-
-      {/* Mobile menu button */}
-      <div className="lg:hidden">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed top-4 left-4 z-40 bg-background/80 backdrop-blur-sm border border-border"
-          onClick={() => setSidebarOpen(true)}
-        >
-          <Menu className="h-6 w-6" />
-        </Button>
-      </div>
-    </>
-  );
-}
-
-function SidebarContent({
-  navigation,
-  pathname,
-  user,
-  organization,
-  onClose,
-}: {
-  navigation: Array<{
-    name: string;
-    href: string;
-    icon: React.ComponentType<{ className?: string }>;
-    adminOnly?: boolean;
-  }>;
-  pathname: string;
-  user: ReturnType<typeof import("@clerk/nextjs").useUser>["user"];
-  organization: OrganizationWithRole | null;
-  onClose?: () => void;
-}) {
-  return (
-    <div className="flex flex-1 flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-sidebar-border">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-r from-primary to-primary/80 rounded-lg flex items-center justify-center">
-            <Clock className="w-5 h-5 text-primary-foreground" />
+  const [open, setOpen] = createSignal(false);
+  const auth = useAuth();
+  const organization = useOrganizationContext();
+  const location = useLocation();
+  const pathname = () => location().pathname;
+  const items = () =>
+    navigation.filter(
+      (item) =>
+        !item.adminOnly ||
+        organization.currentOrganization?.role === "admin" ||
+        organization.loading,
+    );
+  const content = (close?: () => void) => (
+    <div class="flex flex-1 flex-col">
+      <div class="flex items-center justify-between border-b border-sidebar-border p-4">
+        <div class="flex items-center space-x-3">
+          <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-r from-primary to-primary/80">
+            <Clock class="h-5 w-5 text-primary-foreground" />
           </div>
-          <div>
-            <h1 className="text-lg font-semibold text-sidebar-foreground">
-              DTR System
-            </h1>
-          </div>
+          <h1 class="text-lg font-semibold text-sidebar-foreground">
+            DTR System
+          </h1>
         </div>
-        {onClose && (
+        <Show when={close}>
           <Button
             variant="ghost"
             size="icon"
-            onClick={onClose}
-            className="text-sidebar-foreground hover:bg-sidebar-accent"
+            class="text-sidebar-foreground"
+            onClick={close}
           >
-            <X className="h-5 w-5" />
+            <X class="h-5 w-5" />
           </Button>
-        )}
+        </Show>
       </div>
-
-      {/* Organization Selector */}
       <OrganizationSelector />
-
-      {/* Navigation */}
-      <nav className="flex-1 px-4 py-6 space-y-2">
-        {navigation.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.href === "/dtr"
-            ? pathname === "/dtr"
-            : pathname === item.href || pathname.startsWith(item.href + "/");
-
-          return (
-            <Link
-              key={item.name}
+      <nav class="flex-1 space-y-2 px-4 py-6">
+        <For each={items()}>
+          {(item) => (
+            <a
               href={item.href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                isActive
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground border-r-2 border-sidebar-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              onClick={close}
+              class={cn(
+                "flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                (
+                  item.href === "/dtr"
+                    ? pathname() === "/dtr"
+                    : pathname() === item.href ||
+                      pathname().startsWith(`${item.href}/`)
+                )
+                  ? "border-r-2 border-sidebar-primary bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent",
               )}
             >
-              <Icon className="mr-3 h-5 w-5" />
+              <Dynamic component={item.icon} class="mr-3 h-5 w-5" />
               {item.name}
-            </Link>
-          );
-        })}
+            </a>
+          )}
+        </For>
       </nav>
-
-      {/* User profile */}
-      <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center space-x-3">
-          <UserButton
-            appearance={{
-              elements: {
-                avatarBox: "w-10 h-10",
-                userButtonPopoverCard:
-                  "shadow-lg border border-border bg-popover",
-                userButtonPopoverActionButton:
-                  "hover:bg-accent hover:text-accent-foreground",
-              },
-            }}
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {getClientUserDisplayName(user)}
-            </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">
-              {getClientUserEmail(user)}
-            </p>
-          </div>
+      <div class="border-t border-sidebar-border p-4">
+        <div class="flex items-center space-x-3">
+          <UserButton appearance={{ elements: { avatarBox: "w-10 h-10" } }} />
+          <Show
+            when={auth.loaded}
+            fallback={
+              <div
+                class="min-w-0 flex-1 space-y-2"
+                aria-label="Loading account"
+              >
+                <div class="h-4 w-24 animate-pulse rounded bg-muted" />
+                <div class="h-3 w-32 animate-pulse rounded bg-muted" />
+              </div>
+            }
+          >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-sm font-medium text-sidebar-foreground">
+                {getClientUserDisplayName(auth.user)}
+              </p>
+              <p class="truncate text-xs text-sidebar-foreground/60">
+                {getClientUserEmail(auth.user)}
+              </p>
+            </div>
+          </Show>
           <ThemeSwitcher />
         </div>
       </div>
     </div>
+  );
+  return (
+    <>
+      <Show when={open()}>
+        <div
+          class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setOpen(false)}
+        />
+      </Show>
+      <div
+        class={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar shadow-xl transition-transform duration-300 lg:hidden",
+          open() ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        {content(() => setOpen(false))}
+      </div>
+      <div class="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+        <div class="flex min-h-0 flex-1 flex-col border-r border-sidebar-border bg-sidebar shadow-xl">
+          {content()}
+        </div>
+      </div>
+      <div class="lg:hidden">
+        <Button
+          variant="ghost"
+          size="icon"
+          class="fixed left-4 top-4 z-40 border border-border bg-background/80"
+          onClick={() => setOpen(true)}
+        >
+          <Menu class="h-6 w-6" />
+        </Button>
+      </div>
+    </>
   );
 }

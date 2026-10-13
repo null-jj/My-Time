@@ -1,51 +1,39 @@
-"use client";
-import { useState, useEffect } from 'react';
-import { SignedIn, SignedOut, useUser } from '@clerk/nextjs';
-import { usePathname } from 'next/navigation';
-import { Sidebar } from './sidebar';
-import { SidebarSkeleton } from './skeletons';
-
-interface ConditionalLayoutProps {
-  children: React.ReactNode;
-}
-
-export function ConditionalLayout({ children }: ConditionalLayoutProps) {
-  const { isLoaded } = useUser();
-  const pathname = usePathname();
-  // mounted ensures server and client first render match (both false),
-  // preventing hydration mismatch from Clerk's isLoaded differing
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Don't show sidebar on auth pages
-  const isAuthPage = pathname?.startsWith('/sign-in') || pathname?.startsWith('/sign-up');
-
-  const showSidebar = mounted && isLoaded;
-
-  // For authenticated users (except on auth pages), show sidebar layout
-  if (!isAuthPage) {
-    return (
-      <>
-        <SignedIn>
-          <div className="min-h-screen bg-background">
-            {showSidebar ? <Sidebar /> : <SidebarSkeleton />}
-            <div className="lg:pl-64">
-              <main className="py-6 px-4 sm:px-6 lg:px-8">
-                {children}
-              </main>
-            </div>
+import { Show } from "solid-js";
+import { useLocation, useRouterState } from "@tanstack/solid-router";
+import type { JSX } from "@solidjs/web";
+import { useAuth } from "@/lib/auth-client";
+import { Sidebar } from "./sidebar";
+import { LoadingRegion } from "@/components/ui/loading-region";
+import { usePageLoadingState } from "@/lib/contexts/page-loading-context";
+import { useOrganizationContext } from "@/lib/contexts/organization-context";
+export function ConditionalLayout(props: { children: JSX.Element }) {
+  const auth = useAuth();
+  const location = useLocation();
+  const pending = useRouterState({ select: (state) => state.isLoading });
+  const loading = usePageLoadingState();
+  const organization = useOrganizationContext();
+  const content = (
+    <LoadingRegion
+      loading={
+        pending() || loading() || organization.loading || organization.switching
+      }
+    >
+      {props.children}
+    </LoadingRegion>
+  );
+  const isAuthPage = () =>
+    location().pathname.startsWith("/sign-in") ||
+    location().pathname.startsWith("/sign-up");
+  return (
+    <Show when={!isAuthPage()} fallback={content}>
+      <Show when={auth.signedIn} fallback={content}>
+        <div class="min-h-screen bg-background">
+          <Sidebar />
+          <div class="lg:pl-64">
+            <main class="px-4 py-6 sm:px-6 lg:px-8">{content}</main>
           </div>
-        </SignedIn>
-        <SignedOut>
-          {children}
-        </SignedOut>
-      </>
-    );
-  }
-
-  // For auth pages, show full-width layout
-  return <>{children}</>;
+        </div>
+      </Show>
+    </Show>
+  );
 }

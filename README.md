@@ -1,36 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DTR
 
-## Getting Started
+DTR uses SolidJS 2 and TanStack Solid Start. The compatible framework packages are pinned to `2.0.0-rc.8` in `package.json` and `bun.lock`. Upgrade them together.
 
-First, run the development server:
+Install dependencies with `bun install --frozen-lockfile`. Configure Clerk and Turso in `.env` or `.env.local`:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- `VITE_CLERK_PUBLISHABLE_KEY` or the existing `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+- `CLERK_SECRET_KEY`
+- `TURSO_CONNECTION_URL`
+- `TURSO_AUTH_TOKEN`
+- `RESEND_API_KEY` for organization invitations
+- `NEXT_PUBLIC_APP_URL` for invitation links
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Start development manually with `bun run dev`, then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Run `bun run typecheck`, `bun run lint`, and `bun test tests` to check changes. Tests use temporary databases and mocked external services. Run `bun run build` followed by `bun run verify:build` to check the production server handler without starting a server.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+For a production build using the existing production environment file, run `bun --env-file=.env.prod run build`. Start the built app with `node --env-file=.env.prod .output/server/index.mjs`. Keep environment files out of source control.
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Routes live in `src/routes`, screens in `src/pages` and `components`, and API handlers in `server`. The database schema and CLI API paths retain their existing contracts.

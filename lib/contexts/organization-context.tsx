@@ -1,249 +1,257 @@
-"use client";
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useUser } from '@clerk/nextjs';
-import type { OrganizationWithRole } from '@/lib/organizations';
-
-type OrganizationContextType = {
-  currentOrganization: OrganizationWithRole | null;
-  organizations: OrganizationWithRole[];
-  loading: boolean;
-  switching: boolean;
-  error: string | null;
+import {
+  createContext,
+  createEffect,
+  createSignal,
+  useContext,
+  untrack,
+  onCleanup,
+} from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { useAuth } from "@/lib/auth-client";
+import type { OrganizationWithRole } from "@/lib/organizations";
+type OrganizationContextValue = {
+  readonly currentOrganization: OrganizationWithRole | null;
+  readonly organizations: OrganizationWithRole[];
+  readonly loading: boolean;
+  readonly switching: boolean;
+  readonly error: string | null;
   switchOrganization: (orgId: string) => void;
-  createOrganization: (name: string, description?: string) => Promise<OrganizationWithRole>;
+  createOrganization: (
+    name: string,
+    description?: string,
+  ) => Promise<OrganizationWithRole>;
   joinOrganization: (orgId: string) => Promise<void>;
   leaveOrganization: (orgId: string) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
 };
-
-const OrganizationContext = createContext<OrganizationContextType | null>(null);
-
-type OrganizationProviderProps = {
-  children: React.ReactNode;
-};
-
-export function OrganizationProvider({ children }: OrganizationProviderProps) {
-  const { user } = useUser();
-  const [organizations, setOrganizations] = useState<OrganizationWithRole[]>([]);
-  const [currentOrganization, setCurrentOrganization] = useState<OrganizationWithRole | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [switching, setSwitching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Load saved organization preference from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedOrgId = localStorage.getItem('selected-org-id');
-      if (savedOrgId && organizations.length > 0) {
-        const org = organizations.find(o => o.id === savedOrgId);
-        if (org) {
-          setCurrentOrganization(org);
-        }
-      }
-    }
-  }, [organizations]);
-
-  // Fetch organizations when user changes
-  useEffect(() => {
-    if (!user?.id) {
-      setLoading(false);
-      setOrganizations([]);
-      setCurrentOrganization(null);
-      return;
-    }
-
-    fetchOrganizations();
-  }, [user?.id]);
-
+const OrganizationContext = createContext<OrganizationContextValue>();
+function isOrganization(value: unknown): value is OrganizationWithRole {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return (
+    typeof item.id === "string" &&
+    typeof item.name === "string" &&
+    typeof item.createdAt === "string" &&
+    typeof item.updatedAt === "string" &&
+    (item.role === "admin" || item.role === "member") &&
+    (item.description === undefined ||
+      item.description === null ||
+      typeof item.description === "string")
+  );
+}
+async function organizationsFrom(response: Response) {
+  const payload: unknown = await response.json();
+  if (!Array.isArray(payload) || !payload.every(isOrganization))
+    throw new Error("Organizations response is invalid.");
+  return payload;
+}
+function saveSelection(orgId: string | null) {
+  if (orgId) localStorage.setItem("selected-org-id", orgId);
+  else localStorage.removeItem("selected-org-id");
+  document.cookie = `selected-org-id=${orgId ? encodeURIComponent(orgId) : ""}; path=/; max-age=${orgId ? 60 * 60 * 24 * 30 : 0}; SameSite=Lax`;
+}
+export function OrganizationProvider(props: {
+  children: JSX.Element;
+  initialData?: {
+    userId: string | null;
+    orgId: string | null;
+    organizations: OrganizationWithRole[];
+  };
+}) {
+  const auth = useAuth();
+  const initial = untrack(() => props.initialData);
+  let loadedForUser = initial?.userId ?? null;
+  let membershipGeneration = 0;
+  let disposed = false;
+  onCleanup(() => {
+    disposed = true;
+    membershipGeneration++;
+  });
+  const [organizations, setOrganizations] = createSignal<
+    OrganizationWithRole[]
+  >(initial?.organizations ?? []);
+  const [currentOrganization, setCurrentOrganization] =
+    createSignal<OrganizationWithRole | null>(
+      initial?.organizations.find(
+        (organization) => organization.id === initial.orgId,
+      ) ?? null,
+    );
+  const [loading, setLoading] = createSignal(!initial);
+  const [switching, setSwitching] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
   const fetchOrganizations = async () => {
+    const generation = ++membershipGeneration;
+    const userId = loadedForUser;
+    const isCurrent = () =>
+      !disposed &&
+      generation === membershipGeneration &&
+      userId === loadedForUser;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await fetch('/api/organizations', {
-        credentials: 'include'
+      const response = await fetch("/api/organizations", {
+        credentials: "include",
       });
-      
-      if (!response.ok) {
+      if (!response.ok)
         throw new Error(`Failed to fetch organizations: ${response.status}`);
-      }
-      
-      const orgs = await response.json();
-      setOrganizations(orgs);
-      
-      // Set current organization if none is selected
-      if (!currentOrganization && orgs.length > 0) {
-        const savedOrgId = localStorage.getItem('selected-org-id');
-        const org = savedOrgId 
-          ? orgs.find((o: OrganizationWithRole) => o.id === savedOrgId)
-          : orgs[0];
-        
-        if (org) {
-          setCurrentOrganization(org);
-          localStorage.setItem('selected-org-id', org.id);
-        }
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch organizations');
-      console.error('Error fetching organizations:', err);
+      const nextOrganizations = await organizationsFrom(response);
+      if (!isCurrent()) return;
+      setOrganizations(nextOrganizations);
+      const savedId = document.cookie
+        .split(";")
+        .map((cookie) => cookie.trim())
+        .find((cookie) => cookie.startsWith("selected-org-id="))
+        ?.slice("selected-org-id=".length);
+      const selected =
+        nextOrganizations.find((organization) => organization.id === savedId) ??
+        nextOrganizations[0] ??
+        null;
+      setCurrentOrganization(selected);
+      if (selected) saveSelection(selected.id);
+    } catch (reason) {
+      if (!isCurrent()) return;
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Failed to fetch organizations",
+      );
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   };
-
+  createEffect(
+    () => ({ loaded: auth.loaded, userId: auth.user?.id }),
+    ({ loaded, userId }) => {
+      if (!loaded) return;
+      if (!userId) {
+        membershipGeneration++;
+        loadedForUser = null;
+        setOrganizations([]);
+        setCurrentOrganization(null);
+        setLoading(false);
+        return;
+      }
+      if (loadedForUser === userId) return;
+      setOrganizations([]);
+      setCurrentOrganization(null);
+      loadedForUser = userId;
+      void fetchOrganizations();
+    },
+  );
   const switchOrganization = (orgId: string) => {
-    const org = organizations.find(o => o.id === orgId);
-    if (org) {
-      setSwitching(true);
-      setCurrentOrganization(org);
-      localStorage.setItem('selected-org-id', orgId);
-      
-      // Also set cookie for server-side access
-      document.cookie = `selected-org-id=${orgId}; path=/; max-age=${60 * 60 * 24 * 30}`; // 30 days
-      
-      // Refresh the page to ensure all server-side data is updated
+    const next = organizations().find(
+      (organization) => organization.id === orgId,
+    );
+    if (!next) return;
+    setSwitching(true);
+    setCurrentOrganization(next);
+    saveSelection(orgId);
+    window.location.reload();
+  };
+  const createOrganization = async (name: string, description?: string) => {
+    const response = await fetch("/api/organizations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "create", name, description }),
+    });
+    if (!response.ok)
+      throw new Error(`Failed to create organization: ${response.status}`);
+    const payload: unknown = await response.json();
+    if (!payload || typeof payload !== "object")
+      throw new Error("Created organization response is invalid.");
+    const organization = { ...payload, role: "admin" };
+    if (!isOrganization(organization))
+      throw new Error("Created organization response is invalid.");
+    setOrganizations((current) => [...current, organization]);
+    setCurrentOrganization(organization);
+    saveSelection(organization.id);
+    return organization;
+  };
+  const joinOrganization = async (orgId: string) => {
+    const response = await fetch("/api/organizations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "join", orgId }),
+    });
+    if (!response.ok)
+      throw new Error(`Failed to join organization: ${response.status}`);
+    await fetchOrganizations();
+  };
+  const leaveOrganization = async (orgId: string) => {
+    const response = await fetch(`/api/organizations/${orgId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ action: "leave" }),
+    });
+    if (!response.ok)
+      throw new Error(`Failed to leave organization: ${response.status}`);
+    const wasSelected = currentOrganization()?.id === orgId;
+    const remaining = organizations().filter(
+      (organization) => organization.id !== orgId,
+    );
+    setOrganizations(remaining);
+    if (wasSelected) {
+      const next = remaining[0] ?? null;
+      setCurrentOrganization(next);
+      saveSelection(next?.id ?? null);
       window.location.reload();
     }
   };
-
-  const createOrganization = async (name: string, description?: string): Promise<OrganizationWithRole> => {
-    try {
-      const response = await fetch('/api/organizations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'create',
-          name,
-          description,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create organization: ${response.status}`);
-      }
-
-      const newOrg = await response.json();
-      const orgWithRole = { ...newOrg, role: 'admin' as const };
-      
-      setOrganizations(prev => [...prev, orgWithRole]);
-      setCurrentOrganization(orgWithRole);
-      localStorage.setItem('selected-org-id', newOrg.id);
-      
-      return orgWithRole;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create organization';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  const joinOrganization = async (orgId: string): Promise<void> => {
-    try {
-      const response = await fetch('/api/organizations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'join',
-          orgId,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to join organization: ${response.status}`);
-      }
-
-      // Refresh organizations list
-      await fetchOrganizations();
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to join organization';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  const leaveOrganization = async (orgId: string): Promise<void> => {
-    try {
-      const response = await fetch(`/api/organizations/${orgId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          action: 'leave',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to leave organization: ${response.status}`);
-      }
-
-      setOrganizations(prev => prev.filter(org => org.id !== orgId));
-      
-      if (currentOrganization?.id === orgId) {
-        const remainingOrgs = organizations.filter(org => org.id !== orgId);
-        if (remainingOrgs.length > 0) {
-          const newCurrentOrg = remainingOrgs[0];
-          setCurrentOrganization(newCurrentOrg);
-          localStorage.setItem('selected-org-id', newCurrentOrg.id);
-        } else {
-          setCurrentOrganization(null);
-          localStorage.removeItem('selected-org-id');
-        }
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to leave organization';
-      setError(errorMessage);
-      throw new Error(errorMessage);
-    }
-  };
-
-  const refreshOrganizations = async () => {
-    await fetchOrganizations();
-  };
-
-  const value: OrganizationContextType = {
-    currentOrganization,
-    organizations,
-    loading,
-    switching,
-    error,
-    switchOrganization,
-    createOrganization,
-    joinOrganization,
-    leaveOrganization,
-    refreshOrganizations,
-  };
-
   return (
-    <OrganizationContext.Provider value={value}>
-      {children}
-    </OrganizationContext.Provider>
+    <OrganizationContext
+      value={{
+        get currentOrganization() {
+          return currentOrganization();
+        },
+        get organizations() {
+          return organizations();
+        },
+        get loading() {
+          return loading();
+        },
+        get switching() {
+          return switching();
+        },
+        get error() {
+          return error();
+        },
+        switchOrganization,
+        createOrganization,
+        joinOrganization,
+        leaveOrganization,
+        refreshOrganizations: fetchOrganizations,
+      }}
+    >
+      {props.children}
+    </OrganizationContext>
   );
 }
-
 export function useOrganizationContext() {
   const context = useContext(OrganizationContext);
-  if (!context) {
-    throw new Error('useOrganizationContext must be used within an OrganizationProvider');
-  }
+  if (!context)
+    throw new Error(
+      "useOrganizationContext must be used within an OrganizationProvider.",
+    );
   return context;
 }
-
-// Convenience hook for getting just the current organization
 export function useCurrentOrganization() {
-  const { currentOrganization } = useOrganizationContext();
-  return currentOrganization;
+  const context = useOrganizationContext();
+  return () => context.currentOrganization;
 }
-
-// Convenience hook for getting all organizations
 export function useOrganizations() {
-  const { organizations, loading, error } = useOrganizationContext();
-  return { organizations, loading, error };
+  const context = useOrganizationContext();
+  return {
+    get organizations() {
+      return context.organizations;
+    },
+    get loading() {
+      return context.loading;
+    },
+    get error() {
+      return context.error;
+    },
+  };
 }

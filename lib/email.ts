@@ -1,16 +1,12 @@
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
+import { Resend } from "resend";
 function escapeHtml(str: string): string {
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
-
 export async function sendInvitationEmail({
   to,
   organizationName,
@@ -23,8 +19,9 @@ export async function sendInvitationEmail({
   inviteUrl: string;
 }) {
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
-      from: 'DTR <noreply@dtr.allgo.cloud>', // Update this with your verified domain
+      from: "DTR <noreply@dtr.allgo.cloud>", // Update this with your verified domain
       to: [to],
       subject: `You've been invited to join ${organizationName}`,
       html: `
@@ -64,15 +61,13 @@ export async function sendInvitationEmail({
         </div>
       `,
     });
-
     if (error) {
-      console.error('Error sending invitation email:', error);
-      throw new Error('Failed to send invitation email');
+      console.error("Error sending invitation email:", error);
+      throw new Error("Failed to send invitation email");
     }
-
     return data;
   } catch (error) {
-    console.error('Error sending invitation email:', error);
-    throw new Error('Failed to send invitation email');
+    console.error("Error sending invitation email:", error);
+    throw new Error("Failed to send invitation email");
   }
-} 
+}

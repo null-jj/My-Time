@@ -1,8 +1,7 @@
-import { db } from '@/lib/db/config';
-import { organizations, userOrganizations } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-
+import { db } from "@/lib/db/config";
+import { organizations, userOrganizations } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import { nanoid } from "nanoid";
 export type Organization = {
   id: string;
   name: string;
@@ -10,20 +9,19 @@ export type Organization = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type UserOrganization = {
   id: number;
   userId: string;
   orgId: string;
-  role: 'admin' | 'member';
+  role: "admin" | "member";
   joinedAt: string;
 };
-
 export type OrganizationWithRole = Organization & {
-  role: 'admin' | 'member';
+  role: "admin" | "member";
 };
-
-export async function getUserOrganizations(userId: string): Promise<OrganizationWithRole[]> {
+export async function getUserOrganizations(
+  userId: string,
+): Promise<OrganizationWithRole[]> {
   const userOrgs = await db
     .select({
       id: organizations.id,
@@ -36,21 +34,22 @@ export async function getUserOrganizations(userId: string): Promise<Organization
     .from(userOrganizations)
     .innerJoin(organizations, eq(userOrganizations.orgId, organizations.id))
     .where(eq(userOrganizations.userId, userId));
-
   return userOrgs as OrganizationWithRole[];
 }
-
-export async function getOrganizationById(orgId: string): Promise<Organization | null> {
+export async function getOrganizationById(
+  orgId: string,
+): Promise<Organization | null> {
   const result = await db
     .select()
     .from(organizations)
     .where(eq(organizations.id, orgId))
     .limit(1);
-
   return result[0] || null;
 }
-
-export async function getUserOrganization(userId: string, orgId: string): Promise<OrganizationWithRole | null> {
+export async function getUserOrganization(
+  userId: string,
+  orgId: string,
+): Promise<OrganizationWithRole | null> {
   const result = await db
     .select({
       id: organizations.id,
@@ -62,16 +61,22 @@ export async function getUserOrganization(userId: string, orgId: string): Promis
     })
     .from(userOrganizations)
     .innerJoin(organizations, eq(userOrganizations.orgId, organizations.id))
-    .where(and(eq(userOrganizations.userId, userId), eq(userOrganizations.orgId, orgId)))
+    .where(
+      and(
+        eq(userOrganizations.userId, userId),
+        eq(userOrganizations.orgId, orgId),
+      ),
+    )
     .limit(1);
-
   return (result[0] as OrganizationWithRole) || null;
 }
-
-export async function createOrganization(name: string, description: string | undefined | null, creatorUserId: string): Promise<Organization> {
+export async function createOrganization(
+  name: string,
+  description: string | undefined | null,
+  creatorUserId: string,
+): Promise<Organization> {
   const now = new Date().toISOString();
   const orgId = nanoid();
-
   const org = await db.transaction(async (tx) => {
     const [newOrg] = await tx
       .insert(organizations)
@@ -83,24 +88,23 @@ export async function createOrganization(name: string, description: string | und
         updatedAt: now,
       })
       .returning();
-
     // Add creator as admin
     await tx.insert(userOrganizations).values({
       userId: creatorUserId,
       orgId,
-      role: 'admin',
+      role: "admin",
       joinedAt: now,
     });
-
     return newOrg;
   });
-
   return org;
 }
-
-export async function addUserToOrganization(userId: string, orgId: string, role: 'admin' | 'member' = 'member'): Promise<void> {
+export async function addUserToOrganization(
+  userId: string,
+  orgId: string,
+  role: "admin" | "member" = "member",
+): Promise<void> {
   const now = new Date().toISOString();
-  
   await db.insert(userOrganizations).values({
     userId,
     orgId,
@@ -108,20 +112,34 @@ export async function addUserToOrganization(userId: string, orgId: string, role:
     joinedAt: now,
   });
 }
-
-export async function removeUserFromOrganization(userId: string, orgId: string): Promise<void> {
+export async function removeUserFromOrganization(
+  userId: string,
+  orgId: string,
+): Promise<void> {
   await db
     .delete(userOrganizations)
-    .where(and(eq(userOrganizations.userId, userId), eq(userOrganizations.orgId, orgId)));
+    .where(
+      and(
+        eq(userOrganizations.userId, userId),
+        eq(userOrganizations.orgId, orgId),
+      ),
+    );
 }
-
-export async function updateUserRole(userId: string, orgId: string, role: 'admin' | 'member'): Promise<void> {
+export async function updateUserRole(
+  userId: string,
+  orgId: string,
+  role: "admin" | "member",
+): Promise<void> {
   await db
     .update(userOrganizations)
     .set({ role })
-    .where(and(eq(userOrganizations.userId, userId), eq(userOrganizations.orgId, orgId)));
+    .where(
+      and(
+        eq(userOrganizations.userId, userId),
+        eq(userOrganizations.orgId, orgId),
+      ),
+    );
 }
-
 export async function getOrganizationMembers(orgId: string) {
   return await db
     .select({
@@ -132,13 +150,19 @@ export async function getOrganizationMembers(orgId: string) {
     .from(userOrganizations)
     .where(eq(userOrganizations.orgId, orgId));
 }
-
-export async function isUserAdmin(userId: string, orgId: string): Promise<boolean> {
+export async function isUserAdmin(
+  userId: string,
+  orgId: string,
+): Promise<boolean> {
   const result = await db
     .select({ role: userOrganizations.role })
     .from(userOrganizations)
-    .where(and(eq(userOrganizations.userId, userId), eq(userOrganizations.orgId, orgId)))
+    .where(
+      and(
+        eq(userOrganizations.userId, userId),
+        eq(userOrganizations.orgId, orgId),
+      ),
+    )
     .limit(1);
-
-  return result[0]?.role === 'admin';
+  return result[0]?.role === "admin";
 }

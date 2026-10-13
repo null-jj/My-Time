@@ -1,5 +1,4 @@
 // Types for time entries. Safe for client and server.
-
 export type TimeEntry = {
   id: number;
   userId: string;
@@ -11,8 +10,7 @@ export type TimeEntry = {
   createdAt: string;
   updatedAt: string;
 };
-
 export type TimeEntryWithDuration = TimeEntry & {
   duration?: number; // in minutes
   isActive: boolean;
-}; 
+};

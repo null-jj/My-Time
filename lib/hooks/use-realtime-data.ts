@@ -1,94 +1,54 @@
-"use client";
-import { useState, useEffect, useCallback, useRef } from 'react';
-
+import { createEffect, createSignal, onCleanup, type Accessor } from "solid-js";
 type RealtimeDataOptions = {
-  interval?: number; // in milliseconds, default 30 seconds
-  enabled?: boolean;
-  immediate?: boolean; // fetch immediately on mount
+  interval?: number;
+  enabled?: boolean | Accessor<boolean>;
+  immediate?: boolean;
 };
-
 export function useRealtimeData<T>(
   fetchFn: () => Promise<T>,
   initialData: T,
-  options: RealtimeDataOptions = {}
+  options: RealtimeDataOptions = {},
 ) {
-  const {
-    interval = 30000, // 30 seconds default
-    enabled = true,
-    immediate = false
-  } = options;
-
-  const [data, setData] = useState<T>(initialData);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const mountedRef = useRef(true);
-
-  const fetchData = useCallback(async () => {
-    if (!enabled || !mountedRef.current) return;
-
+  const [data, setData] = createSignal<T>(() => initialData);
+  const [loading, setLoading] = createSignal(false);
+  const [error, setError] = createSignal<string | null>(null);
+  const enabled = () =>
+    typeof options.enabled === "function"
+      ? options.enabled()
+      : (options.enabled ?? true);
+  let intervalId: ReturnType<typeof setInterval> | undefined;
+  const refresh = async () => {
+    if (!enabled()) return;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const result = await fetchFn();
-      if (mountedRef.current) {
-        setData(result);
-      }
-    } catch (err) {
-      if (mountedRef.current) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      }
+      const next = await fetchFn();
+      setData(() => next);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Failed to fetch data",
+      );
     } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-  }, [fetchFn, enabled]);
-
-  const startPolling = useCallback(() => {
-    if (!enabled || intervalRef.current) return;
-
-    intervalRef.current = setInterval(fetchData, interval);
-  }, [enabled, interval, fetchData]);
-
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  const refresh = useCallback(() => {
-    return fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (immediate) {
-      fetchData();
-    }
-
-    if (enabled) {
-      startPolling();
-    }
-
-    return () => {
-      stopPolling();
-    };
-  }, [enabled, immediate, fetchData, startPolling, stopPolling]);
-
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-      stopPolling();
-    };
-  }, [stopPolling]);
-
-  return {
-    data,
-    loading,
-    error,
-    refresh,
-    startPolling,
-    stopPolling
   };
+  const stopPolling = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      intervalId = undefined;
+    }
+  };
+  const startPolling = () => {
+    stopPolling();
+    if (enabled())
+      intervalId = setInterval(() => void refresh(), options.interval ?? 30000);
+  };
+  createEffect(enabled, (isEnabled) => {
+    stopPolling();
+    if (!isEnabled) return;
+    if (options.immediate) void refresh();
+    startPolling();
+  });
+  onCleanup(stopPolling);
+  return { data, loading, error, refresh, startPolling, stopPolling };
 }

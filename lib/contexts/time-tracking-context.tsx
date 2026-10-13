@@ -1,68 +1,60 @@
-"use client";
-import React, { createContext, useContext, useCallback } from 'react';
-import { useRealtimeData } from '@/lib/hooks/use-realtime-data';
-import type { TimeEntryWithDuration } from '@/lib/time-entries-types';
-
+import { createContext, useContext } from "solid-js";
+import type { JSX } from "@solidjs/web";
+import { useRealtimeData } from "@/lib/hooks/use-realtime-data";
+import type { TimeEntryWithDuration } from "@/lib/time-entries-types";
 type TimeTrackingData = {
   activeEntry: TimeEntryWithDuration | null;
   todayEntries: TimeEntryWithDuration[];
   isClockedIn: boolean;
 };
-
-type TimeTrackingContextType = {
-  data: TimeTrackingData;
-  loading: boolean;
-  error: string | null;
+type TimeTrackingContextValue = {
+  readonly data: TimeTrackingData;
+  readonly loading: boolean;
+  readonly error: string | null;
   refresh: () => Promise<void>;
-  isRefreshing: boolean;
+  readonly isRefreshing: boolean;
 };
-
-const TimeTrackingContext = createContext<TimeTrackingContextType | null>(null);
-
-type TimeTrackingProviderProps = {
-  children: React.ReactNode;
+const TimeTrackingContext = createContext<TimeTrackingContextValue>();
+export function TimeTrackingProvider(props: {
+  children: JSX.Element;
   initialData: TimeTrackingData;
-};
-
-export function TimeTrackingProvider({ children, initialData }: TimeTrackingProviderProps) {
-  const fetchTimeData = useCallback(async (): Promise<TimeTrackingData> => {
-    const response = await fetch('/dtr/api', { credentials: 'include' });
-    if (!response.ok) {
-      throw new Error('Failed to fetch time tracking data');
-    }
-    return response.json();
-  }, []);
-
-  const {
-    data,
-    loading,
-    error,
-    refresh
-  } = useRealtimeData(fetchTimeData, initialData, {
-    interval: 30000, // Update every 30 seconds
-    enabled: true,
-    immediate: false
-  });
-
-  const value: TimeTrackingContextType = {
-    data,
-    loading,
-    error,
-    refresh,
-    isRefreshing: loading
-  };
-
+}) {
+  const realtime = useRealtimeData(
+    async () => {
+      const response = await fetch("/dtr/api", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch time tracking data");
+      return (await response.json()) as TimeTrackingData;
+    },
+    props.initialData,
+    { interval: 30000, immediate: false },
+  );
   return (
-    <TimeTrackingContext.Provider value={value}>
-      {children}
-    </TimeTrackingContext.Provider>
+    <TimeTrackingContext
+      value={{
+        get data() {
+          return realtime.data();
+        },
+        get loading() {
+          return realtime.loading();
+        },
+        get error() {
+          return realtime.error();
+        },
+        refresh: realtime.refresh,
+        get isRefreshing() {
+          return realtime.loading();
+        },
+      }}
+    >
+      {props.children}
+    </TimeTrackingContext>
   );
 }
-
 export function useTimeTrackingContext() {
   const context = useContext(TimeTrackingContext);
-  if (!context) {
-    throw new Error('useTimeTrackingContext must be used within a TimeTrackingProvider');
-  }
+  if (!context)
+    throw new Error(
+      "useTimeTrackingContext must be used within a TimeTrackingProvider.",
+    );
   return context;
 }

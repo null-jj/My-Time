@@ -21,6 +21,8 @@
 # production
 /build
 *dist
+/.output/
+/.tanstack/
 
 # misc
 .DS_Store

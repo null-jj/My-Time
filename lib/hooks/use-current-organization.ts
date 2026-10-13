@@ -1,7 +1,6 @@
-"use client";
-import { useOrganizationContext } from '@/lib/contexts/organization-context';
-
+import { createMemo } from "solid-js";
+import { useOrganizationContext } from "@/lib/contexts/organization-context";
 export function useCurrentOrganizationId() {
-  const { currentOrganization } = useOrganizationContext();
-  return currentOrganization?.id;
+  const context = useOrganizationContext();
+  return createMemo(() => context.currentOrganization?.id);
 }

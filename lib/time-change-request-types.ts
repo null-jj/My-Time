@@ -7,14 +7,13 @@ export type TimeChangeRequest = {
   requestedTimeOut: string | null;
   requestedNote: string | null;
   reason: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   reviewedBy: string | null;
   reviewedAt: string | null;
   reviewNote: string | null;
   createdAt: string;
   updatedAt: string;
 };
-
 export type TimeChangeRequestWithEntry = TimeChangeRequest & {
   originalTimeIn: string;
   originalTimeOut: string | null;

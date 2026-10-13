@@ -1,11 +1,9 @@
-"use client";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Clock, Calendar } from 'lucide-react';
-import { formatDuration } from '@/lib/time-entries-format';
-import { formatTime } from '@/lib/time-format';
-import type { TimeEntryWithDuration } from '@/lib/time-entries-types';
-
+import { createMemo } from "solid-js";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar } from "@/components/icons";
+import { formatDuration } from "@/lib/time-entries-format";
+import { formatTime } from "@/lib/time-format";
+import type { TimeEntryWithDuration } from "@/lib/time-entries-types";
 type AdminClientProps = {
   records: Array<{
     userId: string;
@@ -17,79 +15,79 @@ type AdminClientProps = {
     }>;
   }>;
 };
-
-export function AdminClient({ records }: AdminClientProps) {
-  const getStatusBadge = (entry: TimeEntryWithDuration) => {
-    if (!entry.timeIn) return <Badge variant="secondary">No Entry</Badge>;
-    if (!entry.timeOut) return <Badge variant="default">In Progress</Badge>;
-    return <Badge variant="default">Complete</Badge>;
-  };
-
-  if (records.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Time Records
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-            <p>No time records found</p>
-            <p className="text-sm">No users have tracked time yet</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {records.map(({ userId, userName, dates }) => (
-        <Card key={userId}>
+export function AdminClient(props: AdminClientProps) {
+  const view = createMemo(() => {
+    if (props.records.length === 0) {
+      return (
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {userName}
+            <CardTitle class="flex items-center gap-2">
+              <Calendar class="h-5 w-5" />
+              Time Records
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {dates.map(({ date, entries, totalMinutes }) => (
-                <div key={date} className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-medium">
-                      {new Date(date).toLocaleDateString([], { 
-                        weekday: 'short', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </span>
-                    <span className="text-sm font-medium text-blue-600">
-                      {formatDuration(totalMinutes)}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {entries.map((entry, index) => (
-                      <div key={entry.id} className="flex items-center justify-between text-sm">
-                        <span>Session {index + 1}</span>
-                        <span className="text-gray-600">
-                          {formatTime(entry.timeIn)} - {entry.timeOut ? formatTime(entry.timeOut) : 'In Progress'}
-                        </span>
-                        <span className="font-medium text-blue-600">
-                          {entry.duration ? formatDuration(entry.duration) : 'Active'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <div class="text-center py-8 text-muted-foreground">
+              <Calendar class="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
+              <p>No time records found</p>
+              <p class="text-sm">No users have tracked time yet</p>
             </div>
           </CardContent>
         </Card>
-      ))}
-    </div>
-  );
+      );
+    }
+    return (
+      <div class="space-y-6">
+        {props.records.map((props) => (
+          <Card>
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <Calendar class="h-5 w-5" />
+                {props.userName}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-4">
+                {props.dates.map((props) => (
+                  <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="flex items-center justify-between mb-3">
+                      <span class="font-medium">
+                        {new Date(props.date).toLocaleDateString([], {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                      <span class="text-sm font-medium text-blue-600">
+                        {formatDuration(props.totalMinutes)}
+                      </span>
+                    </div>
+                    <div class="space-y-2">
+                      {props.entries.map((entry, index) => (
+                        <div class="flex items-center justify-between text-sm">
+                          <span>Session {index + 1}</span>
+                          <span class="text-gray-600">
+                            {formatTime(entry.timeIn)} -{" "}
+                            {entry.timeOut
+                              ? formatTime(entry.timeOut)
+                              : "In Progress"}
+                          </span>
+                          <span class="font-medium text-blue-600">
+                            {entry.duration
+                              ? formatDuration(entry.duration)
+                              : "Active"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  });
+  return <>{view()}</>;
 }

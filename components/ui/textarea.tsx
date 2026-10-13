@@ -1,23 +1,17 @@
-import * as React from "react"
-
-import { cn } from "@/lib/utils"
-
-const Textarea = React.forwardRef<
-  HTMLTextAreaElement,
-  React.ComponentProps<"textarea">
->(({ className, ...props }, ref) => {
+import type { JSX } from "@solidjs/web";
+import { omit } from "solid-js";
+import { cn } from "@/lib/utils";
+export function Textarea(
+  props: JSX.TextareaHTMLAttributes<HTMLTextAreaElement>,
+) {
+  const rest = omit(props, "class");
   return (
     <textarea
-      className={cn(
+      class={cn(
         "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        className
+        props.class,
       )}
-      ref={ref}
-      {...props}
+      {...rest}
     />
-  )
+  );
 }
-)
-Textarea.displayName = "Textarea"
-
-export { Textarea }
