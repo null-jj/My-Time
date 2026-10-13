@@ -2,6 +2,7 @@ import { db } from '@/lib/db/config';
 import { timeChangeRequests, timeEntries } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import type { TimeChangeRequest, TimeChangeRequestWithEntry } from './time-change-request-types';
+import { getDateFromDateTime } from './time-entries-date';
 
 export async function createChangeRequest(
   userId: string,
@@ -164,7 +165,10 @@ export async function reviewChangeRequest(
     // If approved, update the time entry
     if (action === 'approved') {
       const updates: Record<string, string> = { updatedAt: now };
-      if (request.requestedTimeIn) updates.timeIn = request.requestedTimeIn;
+      if (request.requestedTimeIn) {
+        updates.timeIn = request.requestedTimeIn;
+        updates.date = getDateFromDateTime(request.requestedTimeIn);
+      }
       if (request.requestedTimeOut) updates.timeOut = request.requestedTimeOut;
       if (request.requestedNote) updates.note = request.requestedNote;
 
