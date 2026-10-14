@@ -53,10 +53,18 @@
   },
   "type": "module",
   "overrides": {
+    "@tanstack/start-server-core": "1.169.39",
+    "@tanstack/start-client-core": "1.170.34",
+    "@tanstack/start-storage-context": "1.167.36",
+    "@tanstack/router-core": "1.171.34",
+    "@tanstack/history": "1.162.4",
     "@solidjs/compiler": "2.0.0-rc.8",
     "@solidjs/babel-plugin": "2.0.0-rc.8",
     "@solidjs/signals": "2.0.0-rc.8",
     "@solidjs/web": "2.0.0-rc.8",
     "solid-js": "2.0.0-rc.8"
+  },
+  "patchedDependencies": {
+    "@tanstack/solid-router@2.0.0-rc.8": "patches/@tanstack%2Fsolid-router@2.0.0-rc.8.patch"
   }
 }

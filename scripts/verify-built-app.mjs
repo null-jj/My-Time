@@ -1,10 +1,24 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign } from "node:crypto";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@libsql/client";
+import { toJSON } from "seroval";
+
+const coreVersion = JSON.parse(
+  readFileSync("node_modules/@tanstack/start-server-core/package.json", "utf8"),
+)
+  .version.split(".")
+  .map(Number);
+assert.ok(
+  coreVersion[0] > 1 ||
+    (coreVersion[0] === 1 &&
+      (coreVersion[1] > 169 ||
+        (coreVersion[1] === 169 && coreVersion[2] >= 39))),
+  "TanStack server core must include the CVE-2026-102989 fix",
+);
 
 const directory = mkdtempSync(join(tmpdir(), "dtr-built-test-"));
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
@@ -151,7 +165,67 @@ try {
       "application/json",
     );
   }
+  const serverEntry = readFileSync(".output/server/_ssr/ssr.mjs", "utf8");
+  const layoutFunctionId = serverEntry.match(
+    /"([a-f0-9]+)":\s*\{\s*functionName:\s*"getLayoutData_createServerFn_handler"/,
+  )?.[1];
+  assert.ok(
+    layoutFunctionId,
+    "Built layout server function must be registered",
+  );
+  const marker = "dtr-xss-regression";
+  const hostileResponse = {
+    status: 200,
+    headers: { "Content-Type": "text/html" },
+    body: `<script>${marker}</script>`,
+  };
+  const injectedPayload = toJSON({
+    error: hostileResponse,
+    result: hostileResponse,
+  });
+  const hostile = await app.fetch(
+    new Request(
+      `http://localhost:3000/_serverFn/${layoutFunctionId}?payload=${encodeURIComponent(JSON.stringify(injectedPayload))}`,
+      { headers: { accept: "text/html", "sec-fetch-mode": "navigate" } },
+    ),
+  );
+  const hostileBody = await hostile.text();
+  assert.equal(hostile.status, 200);
+  assert.equal(
+    hostile.headers.get("content-type")?.split(";")[0],
+    "application/json",
+  );
+  assert.ok(
+    !hostileBody.includes(marker),
+    "Server functions must not reflect attacker-controlled HTML",
+  );
+  assert.deepEqual(JSON.parse(hostileBody), {
+    userId: null,
+    orgId: null,
+    organizations: [],
+  });
+
   const headers = { cookie: `${cookie("user_a")}; selected-org-id=org_b` };
+  const validServerFunction = await app.fetch(
+    new Request(
+      `http://localhost:3000/_serverFn/${layoutFunctionId}?payload=${encodeURIComponent(JSON.stringify(toJSON({})))}`,
+      {
+        headers: {
+          ...headers,
+          "x-tsr-serverFn": "true",
+          "sec-fetch-site": "same-origin",
+        },
+      },
+    ),
+  );
+  assert.equal(validServerFunction.status, 200);
+  const layoutResult = await validServerFunction.json();
+  assert.equal(layoutResult.userId, "user_a");
+  assert.equal(layoutResult.orgId, "org_a");
+  assert.deepEqual(
+    layoutResult.organizations.map((org) => org.id),
+    ["org_a"],
+  );
   const tracker = await app.fetch(
     new Request("http://localhost:3000/tracker", { headers }),
   );
@@ -185,7 +259,7 @@ try {
   assert.match(refreshed.headers.get("location") ?? "", /clerk\.dtr\.test/);
   assert.ok(refreshed.headers.getSetCookie().length);
   console.log(
-    "Verified built SSR pages, protected routes, JSON APIs, tracker history, organization isolation, role checks, and Clerk handshake headers without opening a server.",
+    "Verified built SSR pages, protected routes, JSON APIs, tracker history, organization isolation, role checks, Clerk handshake headers, and server-function XSS protection without opening a server.",
   );
 } finally {
   globalThis.fetch = actualFetch;

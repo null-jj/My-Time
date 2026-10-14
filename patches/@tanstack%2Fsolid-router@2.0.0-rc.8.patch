@@ -1,0 +1,305 @@
+diff --git a/dist/cjs/Scripts.cjs b/dist/cjs/Scripts.cjs
+index fe4f7d9cd3e8c4624eef5c51ebd01911642d3945..42b456346928c4ff6f0c796f04ee05227340c557 100644
+--- a/dist/cjs/Scripts.cjs
++++ b/dist/cjs/Scripts.cjs
+@@ -40,13 +40,12 @@ var Scripts = () => {
+ 		next.push(...assets);
+ 		return previous ? (0, _tanstack_router_core.replaceEqualDeep)(previous, next) : next;
+ 	});
+-	const serverBufferedScript = (_tanstack_router_core_isServer.isServer ?? router.isServer) && router.serverSsr ? router.serverSsr.takeBufferedScripts() : void 0;
++	const initialHydrationScripts = (_tanstack_router_core_isServer.isServer ?? router.isServer) && router.serverSsr ? router.serverSsr.takeInitialHydrationScriptTags() : void 0;
++	const tags = () => initialHydrationScripts ? _tanstack_router_core.composeSsrBodyScripts([scripts(), []], initialHydrationScripts) : scripts();
+ 	return (0, _solidjs_web.createComponent)(_solidjs_web.NoHydration, { get children() {
+-		return [(0, _solidjs_web.memo)(() => {
+-			return serverBufferedScript && (0, _solidjs_web.createComponent)(require_Asset.Asset, serverBufferedScript);
+-		}), (0, _solidjs_web.createComponent)(solid_js.For, {
++		return [(0, _solidjs_web.createComponent)(solid_js.For, {
+ 			get each() {
+-				return scripts();
++				return tags();
+ 			},
+ 			children: (asset) => (0, _solidjs_web.createComponent)(require_Asset.Asset, asset)
+ 		})];
+diff --git a/dist/cjs/index.cjs b/dist/cjs/index.cjs
+index fec1177fc3b2a3221aaa73166849f3d4a29ec00a..4516a0b90d2fff54d7b947551a434ee8372c7192 100644
+--- a/dist/cjs/index.cjs
++++ b/dist/cjs/index.cjs
+@@ -177,18 +177,6 @@ Object.defineProperty(exports, "isNotFound", {
+ 		return _tanstack_router_core.isNotFound;
+ 	}
+ });
+-Object.defineProperty(exports, "isPlainArray", {
+-	enumerable: true,
+-	get: function() {
+-		return _tanstack_router_core.isPlainArray;
+-	}
+-});
+-Object.defineProperty(exports, "isPlainObject", {
+-	enumerable: true,
+-	get: function() {
+-		return _tanstack_router_core.isPlainObject;
+-	}
+-});
+ Object.defineProperty(exports, "isRedirect", {
+ 	enumerable: true,
+ 	get: function() {
+diff --git a/dist/cjs/index.d.cts b/dist/cjs/index.d.cts
+index 80c65f8dcad00651ac987df4dca2d7533306d7b3..5cf2afc9f60ea3a05186cf9b01da8cdcb023455c 100644
+--- a/dist/cjs/index.d.cts
++++ b/dist/cjs/index.d.cts
+@@ -1,4 +1,4 @@
+-export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, isPlainObject, isPlainArray, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
++export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
+ export type { DeferredPromiseState, DeferredPromise, ParsedLocation, RemoveTrailingSlashes, RemoveLeadingSlashes, ActiveOptions, ResolveRelativePath, RootRouteId, AnyPathParams, ResolveParams, ResolveOptionalParams, ResolveRequiredParams, SearchSchemaInput, AnyContext, RouteContext, PreloadableObj, RoutePathOptions, StaticDataRouteOption, RoutePathOptionsIntersection, UpdatableStaticRouteOption, MetaDescriptor, RouteLinkEntry, ParseParamsFn, SearchFilter, ResolveId, InferFullSearchSchema, InferFullSearchSchemaInput, ErrorRouteProps, ErrorComponentProps, NotFoundRouteProps, TrimPath, TrimPathLeft, TrimPathRight, StringifyParamsFn, ParamsOptions, InferAllParams, InferAllContext, LooseReturnType, LooseAsyncReturnType, ContextReturnType, ContextAsyncReturnType, ResolveLoaderData, ResolveRouteContext, SearchSerializer, SearchParser, TrailingSlashOption, Manifest, RouterManagedTag, ControlledPromise, Constrain, Expand, MergeAll, Assign, IntersectAssign, ResolveValidatorInput, ResolveValidatorOutput, AnyValidator, DefaultValidator, ValidatorFn, AnySchema, AnyValidatorAdapter, AnyValidatorFn, AnyValidatorObj, ResolveValidatorInputFn, ResolveValidatorOutputFn, ResolveSearchValidatorInput, ResolveSearchValidatorInputFn, Validator, ValidatorAdapter, ValidatorObj, NavigateFn, BuildLocationFn, InferDescendantToPaths, RelativeToPath, RelativeToParentPath, RelativeToCurrentPath, Register, AbsoluteToPath, RelativeToPathAutoComplete, NavigateOptions, ToOptions, ToMaskOptions, ToSubOptions, ResolveRoute, SearchParamOptions, PathParamOptions, ToPathOption, LinkOptions, MakeOptionalPathParams, AnyRouterWithContext, ParseRoute, RoutesById, RouteById, RouteIds, RoutesByPath, RouteByPath, RoutePaths, FullSearchSchema, AllParams, AllLoaderData, FullSearchSchemaInput, AllContext, CommitLocationOptions, MatchLocation, ResolveFullSearchSchema, ResolveFullSearchSchemaInput, ResolveAllParamsFromParent, RouteContextParameter, BeforeLoadContextParameter, ResolveAllContext, FullSearchSchemaOption, MakeRemountDepsOptionsUnion, RemountDepsOptions, FileRouteTypes, FileRoutesByPath, UseNavigateResult, AnyRedirect, Redirect, RedirectOptions, ResolvedRedirect, RouteOptions, FileBaseRouteOptions, BaseRouteOptions, UpdatableRouteOptions, RouteLoaderFn, LoaderFnContext, MakeRouteMatch, MakeRouteMatchUnion, RouteMatch, AnyRouteMatch, RouteContextFn, RouteContextOptions, BeforeLoadContextOptions, ContextOptions, RootRouteOptions, AnyRouteWithContext, LazyRouteOptions, AnyRoute, ResolveFullPath, RouteConstraints, RouterState, ListenerFn, BuildNextOptions, AnyRouter, RegisteredRouter, RouterEvents, RouterEvent, RouterListener, MatchRouteOptions, RouteMask, RouterContextOptions, RouterOptions, RouterConstructorOptions, ControllablePromise, InjectedHtmlEntry, CreateFileRoute, CreateLazyFileRoute, AnySerializationAdapter, SerializationAdapter, SerializableExtensions, } from '@tanstack/router-core';
+ export { createHistory, createBrowserHistory, createHashHistory, createMemoryHistory, } from '@tanstack/history';
+ export type { BlockerFn, HistoryLocation, RouterHistory, ParsedPath, HistoryState, } from '@tanstack/history';
+diff --git a/dist/cjs/ssr/renderRouterToStream.cjs b/dist/cjs/ssr/renderRouterToStream.cjs
+index 5b06957814c0955312f3204d22d8645b20b673fc..b54e20b76d6276945fd588a12c5e5457d29912a4 100644
+--- a/dist/cjs/ssr/renderRouterToStream.cjs
++++ b/dist/cjs/ssr/renderRouterToStream.cjs
+@@ -22,7 +22,7 @@ async function waitForReadyOrAbort(ready, signal) {
+ var renderRouterToStream = async ({ request, router, responseHeaders, children, manifest }) => {
+ 	const { writable, readable } = new TransformStream();
+ 	const serovalPlugins = (router.options?.serializationAdapters || router.options.ssr?.serializationAdapters)?.map((adapter) => {
+-		return (0, _tanstack_router_core.makeSsrSerovalPlugin)(adapter, { didRun: false });
++		return (0, _tanstack_router_core_ssr_server.makeSsrSerovalPlugin)(adapter, { didRun: false });
+ 	});
+ 	const stream = _solidjs_web.renderToStream(() => children, {
+ 		nonce: router.options.ssr?.nonce,
+diff --git a/dist/cjs/ssr/renderRouterToString.cjs b/dist/cjs/ssr/renderRouterToString.cjs
+index b5100b891604dfcc09ff3acc549d6f6512ffd409..c6752ef522f20e9ade6f7e5f76ff4261afcb1c65 100644
+--- a/dist/cjs/ssr/renderRouterToString.cjs
++++ b/dist/cjs/ssr/renderRouterToString.cjs
+@@ -6,7 +6,7 @@ _solidjs_web = require_runtime.__toESM(_solidjs_web, 1);
+ var renderRouterToString = ({ router, responseHeaders, children, manifest }) => {
+ 	try {
+ 		const serovalPlugins = (router.options?.serializationAdapters || router.options.ssr?.serializationAdapters)?.map((adapter) => {
+-			return (0, _tanstack_router_core.makeSsrSerovalPlugin)(adapter, { didRun: false });
++			return (0, _tanstack_router_core_ssr_server.makeSsrSerovalPlugin)(adapter, { didRun: false });
+ 		});
+ 		let html = _solidjs_web.renderToString(children, {
+ 			nonce: router.options.ssr?.nonce,
+diff --git a/dist/esm/Scripts.js b/dist/esm/Scripts.js
+index 1ad8dde4f07d7a2efb20316954215e52863d3f5b..b664f88a734a296b770a6e98cd007c5ec7b7c900 100644
+--- a/dist/esm/Scripts.js
++++ b/dist/esm/Scripts.js
+@@ -1,7 +1,7 @@
+ import { useRouter } from "./useRouter.js";
+ import { Asset } from "./Asset.js";
+-import { _getAssetMatches, replaceEqualDeep } from "@tanstack/router-core";
+-import { NoHydration, createComponent, memo } from "@solidjs/web";
++import { _getAssetMatches, composeSsrBodyScripts, replaceEqualDeep } from "@tanstack/router-core";
++import { NoHydration, createComponent } from "@solidjs/web";
+ import * as Solid from "solid-js";
+ import { isServer } from "@tanstack/router-core/isServer";
+ //#region src/Scripts.tsx
+@@ -38,13 +38,12 @@ var Scripts = () => {
+ 		next.push(...assets);
+ 		return previous ? replaceEqualDeep(previous, next) : next;
+ 	});
+-	const serverBufferedScript = (isServer ?? router.isServer) && router.serverSsr ? router.serverSsr.takeBufferedScripts() : void 0;
++	const initialHydrationScripts = (isServer ?? router.isServer) && router.serverSsr ? router.serverSsr.takeInitialHydrationScriptTags() : void 0;
++	const tags = () => initialHydrationScripts ? composeSsrBodyScripts([scripts(), []], initialHydrationScripts) : scripts();
+ 	return createComponent(NoHydration, { get children() {
+-		return [memo(() => {
+-			return serverBufferedScript && createComponent(Asset, serverBufferedScript);
+-		}), createComponent(Solid.For, {
++		return [createComponent(Solid.For, {
+ 			get each() {
+-				return scripts();
++				return tags();
+ 			},
+ 			children: (asset) => createComponent(Asset, asset)
+ 		})];
+diff --git a/dist/esm/index.d.ts b/dist/esm/index.d.ts
+index 6fb2616bd642d31b755dd97f2b33107106bcf930..39a60a7bdd15ebfcc73cc3eb3072d407041e0a0d 100644
+--- a/dist/esm/index.d.ts
++++ b/dist/esm/index.d.ts
+@@ -1,4 +1,4 @@
+-export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, isPlainObject, isPlainArray, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
++export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
+ export type { DeferredPromiseState, DeferredPromise, ParsedLocation, RemoveTrailingSlashes, RemoveLeadingSlashes, ActiveOptions, ResolveRelativePath, RootRouteId, AnyPathParams, ResolveParams, ResolveOptionalParams, ResolveRequiredParams, SearchSchemaInput, AnyContext, RouteContext, PreloadableObj, RoutePathOptions, StaticDataRouteOption, RoutePathOptionsIntersection, UpdatableStaticRouteOption, MetaDescriptor, RouteLinkEntry, ParseParamsFn, SearchFilter, ResolveId, InferFullSearchSchema, InferFullSearchSchemaInput, ErrorRouteProps, ErrorComponentProps, NotFoundRouteProps, TrimPath, TrimPathLeft, TrimPathRight, StringifyParamsFn, ParamsOptions, InferAllParams, InferAllContext, LooseReturnType, LooseAsyncReturnType, ContextReturnType, ContextAsyncReturnType, ResolveLoaderData, ResolveRouteContext, SearchSerializer, SearchParser, TrailingSlashOption, Manifest, RouterManagedTag, ControlledPromise, Constrain, Expand, MergeAll, Assign, IntersectAssign, ResolveValidatorInput, ResolveValidatorOutput, AnyValidator, DefaultValidator, ValidatorFn, AnySchema, AnyValidatorAdapter, AnyValidatorFn, AnyValidatorObj, ResolveValidatorInputFn, ResolveValidatorOutputFn, ResolveSearchValidatorInput, ResolveSearchValidatorInputFn, Validator, ValidatorAdapter, ValidatorObj, NavigateFn, BuildLocationFn, InferDescendantToPaths, RelativeToPath, RelativeToParentPath, RelativeToCurrentPath, Register, AbsoluteToPath, RelativeToPathAutoComplete, NavigateOptions, ToOptions, ToMaskOptions, ToSubOptions, ResolveRoute, SearchParamOptions, PathParamOptions, ToPathOption, LinkOptions, MakeOptionalPathParams, AnyRouterWithContext, ParseRoute, RoutesById, RouteById, RouteIds, RoutesByPath, RouteByPath, RoutePaths, FullSearchSchema, AllParams, AllLoaderData, FullSearchSchemaInput, AllContext, CommitLocationOptions, MatchLocation, ResolveFullSearchSchema, ResolveFullSearchSchemaInput, ResolveAllParamsFromParent, RouteContextParameter, BeforeLoadContextParameter, ResolveAllContext, FullSearchSchemaOption, MakeRemountDepsOptionsUnion, RemountDepsOptions, FileRouteTypes, FileRoutesByPath, UseNavigateResult, AnyRedirect, Redirect, RedirectOptions, ResolvedRedirect, RouteOptions, FileBaseRouteOptions, BaseRouteOptions, UpdatableRouteOptions, RouteLoaderFn, LoaderFnContext, MakeRouteMatch, MakeRouteMatchUnion, RouteMatch, AnyRouteMatch, RouteContextFn, RouteContextOptions, BeforeLoadContextOptions, ContextOptions, RootRouteOptions, AnyRouteWithContext, LazyRouteOptions, AnyRoute, ResolveFullPath, RouteConstraints, RouterState, ListenerFn, BuildNextOptions, AnyRouter, RegisteredRouter, RouterEvents, RouterEvent, RouterListener, MatchRouteOptions, RouteMask, RouterContextOptions, RouterOptions, RouterConstructorOptions, ControllablePromise, InjectedHtmlEntry, CreateFileRoute, CreateLazyFileRoute, AnySerializationAdapter, SerializationAdapter, SerializableExtensions, } from '@tanstack/router-core';
+ export { createHistory, createBrowserHistory, createHashHistory, createMemoryHistory, } from '@tanstack/history';
+ export type { BlockerFn, HistoryLocation, RouterHistory, ParsedPath, HistoryState, } from '@tanstack/history';
+diff --git a/dist/esm/index.js b/dist/esm/index.js
+index f6444f6788707affef05dbcf4cc7ad95770a09fd..819bc8fea1a989c216afd678ed9fab9cad57296a 100644
+--- a/dist/esm/index.js
++++ b/dist/esm/index.js
+@@ -28,6 +28,6 @@ import { Asset } from "./Asset.js";
+ import { useTags } from "./headContentUtils.js";
+ import { HeadContent } from "./HeadContent.js";
+ import { Scripts } from "./Scripts.js";
+-import { DEFAULT_PROTOCOL_ALLOWLIST, SearchParamError, cleanPath, composeRewrites, createControlledPromise, createSerializationAdapter, deepEqual, defaultParseSearch, defaultStringifySearch, defer, functionalUpdate, interpolatePath, isMatch, isNotFound, isPlainArray, isPlainObject, isRedirect, joinPaths, lazyFn, notFound, parseSearchWith, redirect, replaceEqualDeep, resolvePath, retainSearchParams, rootRouteId, stringifySearchWith, stripSearchParams, trimPath, trimPathLeft, trimPathRight } from "@tanstack/router-core";
++import { DEFAULT_PROTOCOL_ALLOWLIST, SearchParamError, cleanPath, composeRewrites, createControlledPromise, createSerializationAdapter, deepEqual, defaultParseSearch, defaultStringifySearch, defer, functionalUpdate, interpolatePath, isMatch, isNotFound, isRedirect, joinPaths, lazyFn, notFound, parseSearchWith, redirect, replaceEqualDeep, resolvePath, retainSearchParams, rootRouteId, stringifySearchWith, stripSearchParams, trimPath, trimPathLeft, trimPathRight } from "@tanstack/router-core";
+ import { createBrowserHistory, createHashHistory, createHistory, createMemoryHistory } from "@tanstack/history";
+-export { Asset, Await, Block, CatchBoundary, CatchNotFound, ClientOnly, DEFAULT_PROTOCOL_ALLOWLIST, DefaultGlobalNotFound, ErrorComponent, FileRoute, FileRouteLoader, HeadContent, LazyRoute, Link, Match, MatchRoute, Matches, Navigate, NotFoundRoute, Outlet, RootRoute, Route, RouteApi, Router, RouterContextProvider, RouterProvider, ScriptOnce, Scripts, ScrollRestoration, SearchParamError, cleanPath, composeRewrites, createBrowserHistory, createControlledPromise, createFileRoute, createHashHistory, createHistory, createLazyFileRoute, createLazyRoute, createLink, createMemoryHistory, createRootRoute, createRootRouteWithContext, createRoute, createRouteMask, createRouter, createSerializationAdapter, deepEqual, defaultParseSearch, defaultStringifySearch, defer, functionalUpdate, getRouteApi, interpolatePath, isMatch, isNotFound, isPlainArray, isPlainObject, isRedirect, joinPaths, lazyFn, lazyRouteComponent, linkOptions, notFound, parseSearchWith, redirect, replaceEqualDeep, resolvePath, retainSearchParams, rootRouteId, rootRouteWithContext, stringifySearchWith, stripSearchParams, trimPath, trimPathLeft, trimPathRight, useAwaited, useBlocker, useCanGoBack, useChildMatches, useElementScrollRestoration, useHydrated, useLinkProps, useLoaderData, useLoaderDeps, useLocation, useMatch, useMatchRoute, useMatches, useNavigate, useParams, useParentMatches, useRouteContext, useRouter, useRouterState, useSearch, useTags };
++export { Asset, Await, Block, CatchBoundary, CatchNotFound, ClientOnly, DEFAULT_PROTOCOL_ALLOWLIST, DefaultGlobalNotFound, ErrorComponent, FileRoute, FileRouteLoader, HeadContent, LazyRoute, Link, Match, MatchRoute, Matches, Navigate, NotFoundRoute, Outlet, RootRoute, Route, RouteApi, Router, RouterContextProvider, RouterProvider, ScriptOnce, Scripts, ScrollRestoration, SearchParamError, cleanPath, composeRewrites, createBrowserHistory, createControlledPromise, createFileRoute, createHashHistory, createHistory, createLazyFileRoute, createLazyRoute, createLink, createMemoryHistory, createRootRoute, createRootRouteWithContext, createRoute, createRouteMask, createRouter, createSerializationAdapter, deepEqual, defaultParseSearch, defaultStringifySearch, defer, functionalUpdate, getRouteApi, interpolatePath, isMatch, isNotFound, isRedirect, joinPaths, lazyFn, lazyRouteComponent, linkOptions, notFound, parseSearchWith, redirect, replaceEqualDeep, resolvePath, retainSearchParams, rootRouteId, rootRouteWithContext, stringifySearchWith, stripSearchParams, trimPath, trimPathLeft, trimPathRight, useAwaited, useBlocker, useCanGoBack, useChildMatches, useElementScrollRestoration, useHydrated, useLinkProps, useLoaderData, useLoaderDeps, useLocation, useMatch, useMatchRoute, useMatches, useNavigate, useParams, useParentMatches, useRouteContext, useRouter, useRouterState, useSearch, useTags };
+diff --git a/dist/esm/ssr/renderRouterToStream.js b/dist/esm/ssr/renderRouterToStream.js
+index 1632c1b07020a90a57e0fe25f3353f3e11055738..31f7a4f37bca1c0fe3af89109ad0c8a3f34e4951 100644
+--- a/dist/esm/ssr/renderRouterToStream.js
++++ b/dist/esm/ssr/renderRouterToStream.js
+@@ -1,4 +1,4 @@
+-import { makeSsrSerovalPlugin } from "@tanstack/router-core";
++import { makeSsrSerovalPlugin } from "@tanstack/router-core/ssr/server";
+ import * as Solid from "@solidjs/web";
+ import { createSsrStreamResponse, transformReadableStreamWithRouter } from "@tanstack/router-core/ssr/server";
+ import { isbot } from "isbot";
+diff --git a/dist/esm/ssr/renderRouterToString.js b/dist/esm/ssr/renderRouterToString.js
+index a7d9b113718a3f2faee92ff7289a3476dfdc7987..40ef08fd512078796a5c98ee6a1580d05dec241c 100644
+--- a/dist/esm/ssr/renderRouterToString.js
++++ b/dist/esm/ssr/renderRouterToString.js
+@@ -1,4 +1,4 @@
+-import { makeSsrSerovalPlugin } from "@tanstack/router-core";
++import { makeSsrSerovalPlugin } from "@tanstack/router-core/ssr/server";
+ import * as Solid from "@solidjs/web";
+ //#region src/ssr/renderRouterToString.tsx
+ var renderRouterToString = ({ router, responseHeaders, children, manifest }) => {
+diff --git a/dist/source/Scripts.jsx b/dist/source/Scripts.jsx
+index 98d3ab8ce09f8dc720a8d3dd8d64eb7753a17e12..3bb7e358fc92ac187c21952ab26de9063eb72fa2 100644
+--- a/dist/source/Scripts.jsx
++++ b/dist/source/Scripts.jsx
+@@ -1,6 +1,6 @@
+ import * as Solid from 'solid-js';
+ import { NoHydration } from '@solidjs/web';
+-import { _getAssetMatches, replaceEqualDeep } from '@tanstack/router-core';
++import { _getAssetMatches, composeSsrBodyScripts, replaceEqualDeep } from '@tanstack/router-core';
+ import { isServer } from '@tanstack/router-core/isServer';
+ import { Asset } from './Asset';
+ import { useRouter } from './useRouter';
+@@ -35,12 +35,15 @@ export const Scripts = () => {
+         next.push(...assets);
+         return previous ? replaceEqualDeep(previous, next) : next;
+     });
+-    const serverBufferedScript = (isServer ?? router.isServer) && router.serverSsr
+-        ? router.serverSsr.takeBufferedScripts()
++    const initialHydrationScripts =
++      (isServer ?? router.isServer) && router.serverSsr
++        ? router.serverSsr.takeInitialHydrationScriptTags()
+         : undefined;
++    const tags = () => initialHydrationScripts
++      ? composeSsrBodyScripts([scripts(), []], initialHydrationScripts)
++      : scripts();
+     return (<NoHydration>
+-      {serverBufferedScript && <Asset {...serverBufferedScript}/>}
+-      <Solid.For each={scripts()}>{(asset) => <Asset {...asset}/>}</Solid.For>
++      <Solid.For each={tags()}>{(asset) => <Asset {...asset}/>}</Solid.For>
+     </NoHydration>);
+ };
+ //# sourceMappingURL=Scripts.jsx.map
+\ No newline at end of file
+diff --git a/dist/source/index.d.ts b/dist/source/index.d.ts
+index ec37ef938d1f11e23c698f2d2eaaf87937aae8ed..c66177ea03f1d48049caf48d48bd5107eb596a9a 100644
+--- a/dist/source/index.d.ts
++++ b/dist/source/index.d.ts
+@@ -1,4 +1,4 @@
+-export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, isPlainObject, isPlainArray, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
++export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
+ export type { DeferredPromiseState, DeferredPromise, ParsedLocation, RemoveTrailingSlashes, RemoveLeadingSlashes, ActiveOptions, ResolveRelativePath, RootRouteId, AnyPathParams, ResolveParams, ResolveOptionalParams, ResolveRequiredParams, SearchSchemaInput, AnyContext, RouteContext, PreloadableObj, RoutePathOptions, StaticDataRouteOption, RoutePathOptionsIntersection, UpdatableStaticRouteOption, MetaDescriptor, RouteLinkEntry, ParseParamsFn, SearchFilter, ResolveId, InferFullSearchSchema, InferFullSearchSchemaInput, ErrorRouteProps, ErrorComponentProps, NotFoundRouteProps, TrimPath, TrimPathLeft, TrimPathRight, StringifyParamsFn, ParamsOptions, InferAllParams, InferAllContext, LooseReturnType, LooseAsyncReturnType, ContextReturnType, ContextAsyncReturnType, ResolveLoaderData, ResolveRouteContext, SearchSerializer, SearchParser, TrailingSlashOption, Manifest, RouterManagedTag, ControlledPromise, Constrain, Expand, MergeAll, Assign, IntersectAssign, ResolveValidatorInput, ResolveValidatorOutput, AnyValidator, DefaultValidator, ValidatorFn, AnySchema, AnyValidatorAdapter, AnyValidatorFn, AnyValidatorObj, ResolveValidatorInputFn, ResolveValidatorOutputFn, ResolveSearchValidatorInput, ResolveSearchValidatorInputFn, Validator, ValidatorAdapter, ValidatorObj, NavigateFn, BuildLocationFn, InferDescendantToPaths, RelativeToPath, RelativeToParentPath, RelativeToCurrentPath, Register, AbsoluteToPath, RelativeToPathAutoComplete, NavigateOptions, ToOptions, ToMaskOptions, ToSubOptions, ResolveRoute, SearchParamOptions, PathParamOptions, ToPathOption, LinkOptions, MakeOptionalPathParams, AnyRouterWithContext, ParseRoute, RoutesById, RouteById, RouteIds, RoutesByPath, RouteByPath, RoutePaths, FullSearchSchema, AllParams, AllLoaderData, FullSearchSchemaInput, AllContext, CommitLocationOptions, MatchLocation, ResolveFullSearchSchema, ResolveFullSearchSchemaInput, ResolveAllParamsFromParent, RouteContextParameter, BeforeLoadContextParameter, ResolveAllContext, FullSearchSchemaOption, MakeRemountDepsOptionsUnion, RemountDepsOptions, FileRouteTypes, FileRoutesByPath, UseNavigateResult, AnyRedirect, Redirect, RedirectOptions, ResolvedRedirect, RouteOptions, FileBaseRouteOptions, BaseRouteOptions, UpdatableRouteOptions, RouteLoaderFn, LoaderFnContext, MakeRouteMatch, MakeRouteMatchUnion, RouteMatch, AnyRouteMatch, RouteContextFn, RouteContextOptions, BeforeLoadContextOptions, ContextOptions, RootRouteOptions, AnyRouteWithContext, LazyRouteOptions, AnyRoute, ResolveFullPath, RouteConstraints, RouterState, ListenerFn, BuildNextOptions, AnyRouter, RegisteredRouter, RouterEvents, RouterEvent, RouterListener, MatchRouteOptions, RouteMask, RouterContextOptions, RouterOptions, RouterConstructorOptions, ControllablePromise, InjectedHtmlEntry, CreateFileRoute, CreateLazyFileRoute, AnySerializationAdapter, SerializationAdapter, SerializableExtensions, } from '@tanstack/router-core';
+ export { createHistory, createBrowserHistory, createHashHistory, createMemoryHistory, } from '@tanstack/history';
+ export type { BlockerFn, HistoryLocation, RouterHistory, ParsedPath, HistoryState, } from '@tanstack/history';
+diff --git a/dist/source/index.jsx b/dist/source/index.jsx
+index 8d36011749d98bdbcfa15ffbdcd29bc85e645839..3d6629b7b286e3439e8b3a1f90b02aab7b9ae743 100644
+--- a/dist/source/index.jsx
++++ b/dist/source/index.jsx
+@@ -1,4 +1,4 @@
+-export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, isPlainObject, isPlainArray, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
++export { defer, isMatch, joinPaths, cleanPath, trimPathLeft, trimPathRight, trimPath, resolvePath, interpolatePath, rootRouteId, defaultParseSearch, defaultStringifySearch, parseSearchWith, stringifySearchWith, functionalUpdate, replaceEqualDeep, deepEqual, createControlledPromise, retainSearchParams, stripSearchParams, createSerializationAdapter, } from '@tanstack/router-core';
+ export { createHistory, createBrowserHistory, createHashHistory, createMemoryHistory, } from '@tanstack/history';
+ export { useAwaited, Await } from './awaited';
+ export { CatchBoundary, ErrorComponent } from './CatchBoundary';
+diff --git a/dist/source/ssr/renderRouterToStream.jsx b/dist/source/ssr/renderRouterToStream.jsx
+index 1bd6f0e5b8a1d6f29b69d8044ddeeb65f7160a4b..438bb6e56a1bda7d9d99e2b2d2618b80b2f723ab 100644
+--- a/dist/source/ssr/renderRouterToStream.jsx
++++ b/dist/source/ssr/renderRouterToStream.jsx
+@@ -1,7 +1,7 @@
+ import * as Solid from '@solidjs/web';
+ import { isbot } from 'isbot';
+ import { createSsrStreamResponse, transformReadableStreamWithRouter, } from '@tanstack/router-core/ssr/server';
+-import { makeSsrSerovalPlugin } from '@tanstack/router-core';
++import { makeSsrSerovalPlugin } from '@tanstack/router-core/ssr/server';
+ import clientAssetsManifest from './clientAssetsManifest';
+ const noop = () => { };
+ // Bot responses wait for the server renderer before streaming. If the request
+diff --git a/dist/source/ssr/renderRouterToString.jsx b/dist/source/ssr/renderRouterToString.jsx
+index 50b02f78f25d83a898179c0bdaa9d5e1fbb51dad..18ff41f069c595bbb6fb1ba27e8aa69a39508f65 100644
+--- a/dist/source/ssr/renderRouterToString.jsx
++++ b/dist/source/ssr/renderRouterToString.jsx
+@@ -1,5 +1,5 @@
+ import * as Solid from '@solidjs/web';
+-import { makeSsrSerovalPlugin } from '@tanstack/router-core';
++import { makeSsrSerovalPlugin } from '@tanstack/router-core/ssr/server';
+ import clientAssetsManifest from './clientAssetsManifest';
+ export const renderRouterToString = ({ router, responseHeaders, children, manifest, }) => {
+     try {
+diff --git a/src/Scripts.tsx b/src/Scripts.tsx
+index dcea4c60bac4fb9412657d6781459ab2a481283b..8968f87da48890606aad48c0dcd232f495863475 100644
+--- a/src/Scripts.tsx
++++ b/src/Scripts.tsx
+@@ -1,6 +1,6 @@
+ import * as Solid from 'solid-js'
+ import { NoHydration } from '@solidjs/web'
+-import { _getAssetMatches, replaceEqualDeep } from '@tanstack/router-core'
++import { _getAssetMatches, composeSsrBodyScripts, replaceEqualDeep } from '@tanstack/router-core'
+ import { isServer } from '@tanstack/router-core/isServer'
+ import { Asset } from './Asset'
+ import { useRouter } from './useRouter'
+@@ -40,15 +40,16 @@ export const Scripts = () => {
+       return previous ? replaceEqualDeep(previous, next) : next
+     },
+   )
+-  const serverBufferedScript =
++  const initialHydrationScripts =
+     (isServer ?? router.isServer) && router.serverSsr
+-      ? router.serverSsr.takeBufferedScripts()
+-      : undefined
+-
++      ? router.serverSsr.takeInitialHydrationScriptTags()
++      : undefined;
++  const tags = () => initialHydrationScripts
++    ? composeSsrBodyScripts([scripts(), []], initialHydrationScripts)
++    : scripts();
+   return (
+     <NoHydration>
+-      {serverBufferedScript && <Asset {...serverBufferedScript} />}
+-      <Solid.For each={scripts()}>{(asset) => <Asset {...asset} />}</Solid.For>
++      <Solid.For each={tags()}>{(asset) => <Asset {...asset} />}</Solid.For>
+     </NoHydration>
+   )
+ }
+diff --git a/src/index.tsx b/src/index.tsx
+index 31be74086fd93c5d1ab86d93c17251e40db91212..6cd6020f43a170ecf1ace9415e71ebf567c6f35a 100644
+--- a/src/index.tsx
++++ b/src/index.tsx
+@@ -15,8 +15,6 @@ export {
+   stringifySearchWith,
+   functionalUpdate,
+   replaceEqualDeep,
+-  isPlainObject,
+-  isPlainArray,
+   deepEqual,
+   createControlledPromise,
+   retainSearchParams,
+diff --git a/src/ssr/renderRouterToStream.tsx b/src/ssr/renderRouterToStream.tsx
+index 5bc303e2e66d854d8ed0ec1e95a759f8f8532861..d2be3c05f51c30db889c011e4289d072d863af26 100644
+--- a/src/ssr/renderRouterToStream.tsx
++++ b/src/ssr/renderRouterToStream.tsx
+@@ -4,7 +4,7 @@ import {
+   createSsrStreamResponse,
+   transformReadableStreamWithRouter,
+ } from '@tanstack/router-core/ssr/server'
+-import { makeSsrSerovalPlugin } from '@tanstack/router-core'
++import { makeSsrSerovalPlugin } from '@tanstack/router-core/ssr/server'
+ import clientAssetsManifest from './clientAssetsManifest'
+ import type { ReadableStream } from 'node:stream/web'
+ import type { AnyRouter } from '@tanstack/router-core'
+diff --git a/src/ssr/renderRouterToString.tsx b/src/ssr/renderRouterToString.tsx
+index 982c4b886de055045e7411b80c02e861d7cec38b..5d6b3bdccf1afc6cd6360b0ccf5e585f610811a4 100644
+--- a/src/ssr/renderRouterToString.tsx
++++ b/src/ssr/renderRouterToString.tsx
+@@ -1,5 +1,5 @@
+ import * as Solid from '@solidjs/web'
+-import { makeSsrSerovalPlugin } from '@tanstack/router-core'
++import { makeSsrSerovalPlugin } from '@tanstack/router-core/ssr/server'
+ import clientAssetsManifest from './clientAssetsManifest'
+ import type { AnyRouter } from '@tanstack/router-core'
+ import type { JSX } from '@solidjs/web'

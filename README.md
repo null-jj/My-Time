@@ -2,6 +2,8 @@
 
 DTR uses SolidJS 2 and TanStack Solid Start. The compatible framework packages are pinned to `2.0.0-rc.8` in `package.json` and `bun.lock`. Upgrade them together.
 
+TanStack core dependencies are pinned to the patched `start-server-core@1.169.39` dependency set for CVE-2026-102989. Bun applies the Solid Router patch in `patches` to remove obsolete exports and adapt its SSR script API to these cores. Remove the patch when upgrading to a compatible SolidJS 2 framework release that includes the security fix.
+
 Install dependencies with `bun install --frozen-lockfile`. Configure Clerk and Turso in `.env` or `.env.local`:
 
 - `VITE_CLERK_PUBLISHABLE_KEY` or the existing `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
