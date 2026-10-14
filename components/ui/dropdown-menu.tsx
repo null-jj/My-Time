@@ -28,7 +28,7 @@ function focusTrigger(menu: MenuValue) {
     menu.trigger?.querySelector<HTMLButtonElement>("button") ?? menu.trigger
   )?.focus();
 }
-export function DropdownMenu(props: { children: JSX.Element }) {
+export function DropdownMenu(props: { children: JSX.Element; class?: string }) {
   const [open, setOpen] = createSignal(false);
   let root: HTMLDivElement | undefined;
   const menu: MenuValue = {
@@ -83,7 +83,11 @@ export function DropdownMenu(props: { children: JSX.Element }) {
   };
   return (
     <MenuContext value={menu}>
-      <div ref={root} class="relative inline-block" onKeyDown={navigate}>
+      <div
+        ref={root}
+        class={cn("relative inline-block", props.class)}
+        onKeyDown={navigate}
+      >
         {props.children}
       </div>
     </MenuContext>

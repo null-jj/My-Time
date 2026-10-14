@@ -421,22 +421,21 @@ export function DtrExport(props: DtrExportProps) {
             {exportType() === "individual" && (
               <div class="space-y-2">
                 <Label>Select Member</Label>
-                <DropdownMenu>
+                <DropdownMenu class="block w-full min-w-0">
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" class="w-full justify-between">
-                      {getSelectedMemberName()}
-                      <ChevronDown class="h-4 w-4" />
+                      <span class="truncate">{getSelectedMemberName()}</span>
+                      <ChevronDown class="h-4 w-4 shrink-0" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent class="w-full">
+                  <DropdownMenuContent class="max-h-[min(24rem,50dvh)] w-full min-w-0 overflow-y-auto">
                     {props.members.map((member) => (
                       <DropdownMenuItem
                         onClick={() => setSelectedMember(member.userId)}
                       >
-                        <div class="flex flex-col">
-                          <span class="font-medium">{member.name}</span>
-                          <span class="text-sm text-muted-foreground">
-                            {member.email}
+                        <div class="flex min-w-0 flex-col">
+                          <span class="whitespace-normal break-words font-medium">
+                            {member.name}
                           </span>
                         </div>
                       </DropdownMenuItem>
